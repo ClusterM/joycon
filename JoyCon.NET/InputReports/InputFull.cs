@@ -1,12 +1,13 @@
 ﻿using System.Runtime.InteropServices;
+using wtf.cluster.JoyCon.InputData;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputReports;
 
 /// <summary>
-/// Input reports with IMU data
+/// Standard full input report.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public class InputStandard : IJoyConReport
+public class InputFull : IJoyConReport
 {
     /// <summary>
     /// Battery level.
@@ -96,7 +97,7 @@ public class InputStandard : IJoyConReport
     /// <summary>
     /// Button states.
     /// </summary>
-    public ButtonsStandard Buttons { get; }
+    public ButtonsFull Buttons { get; }
 
     private readonly StickPositionStandard leftStick;
     /// <summary>
@@ -118,12 +119,12 @@ public class InputStandard : IJoyConReport
     public byte RumbleData => rumbleData;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-    internal InputStandard()
+    internal InputFull()
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
     }
 
     /// <inheritdoc/>
-    public override string ToString() => $"LeftStick: ({LeftStick}), RightStick: ({RightStick}), Buttons: ({Buttons}), Battery: {Battery}, Charging: {Charging}, Connection: {Connection}";
+    public override string ToString() => $"LeftStick: ({LeftStick}), RightStick: ({RightStick}), Buttons: ({Buttons}), Battery: {Battery}, Charging: {Charging}";
 }
 

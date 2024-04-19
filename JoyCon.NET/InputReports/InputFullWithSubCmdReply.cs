@@ -1,24 +1,24 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputReports;
 
 /// <summary>
-/// IMU sensor data (accelerometer, gyroscope).
+/// Standard full input report + subcommand reply.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public class InputWithImu : InputStandard
+public class InputFullWithSubCmdReply : InputFull
 {
     /// <summary>
-    /// IMU sensor data (accelerometer, gyroscope).
+    /// Reply to the last subcommand.
     /// </summary>
-    public Imu Imu { get; }
+    public SubCmdReply SubcommandReply { get; }
+
+    /// <inheritdoc/>
+    public override string ToString() => SubcommandReply.ToString();
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-    internal InputWithImu()
+    private InputFullWithSubCmdReply()
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
     }
-
-    /// <inheritdoc/>
-    public override string ToString() => base.ToString() + $", IMU: ({Imu})";
 }

@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace wtf.cluster.joycon;
+namespace wtf.cluster.JoyCon.ExtraData;
 
 /// <summary>
 /// Colors of the controller.

@@ -1,13 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputData;
 
 /// <summary>
 /// Accelerometer and gyroscope data, 3 frames with 5ms interval.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Size = 36, Pack = 1)]
-public class Imu
+public class ImuReport
 {
     private readonly ImuFrame imuFrame1;
     private readonly ImuFrame imuFrame2;
@@ -19,7 +19,7 @@ public class Imu
     public IReadOnlyList<ImuFrame> Frames => [imuFrame1, imuFrame2, imuFrame3];
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-    private Imu()
+    private ImuReport()
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
     }

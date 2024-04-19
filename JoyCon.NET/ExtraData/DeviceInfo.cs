@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.ExtraData;
 
 /// <summary>
 /// Device information.

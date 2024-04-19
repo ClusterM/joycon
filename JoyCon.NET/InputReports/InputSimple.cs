@@ -1,11 +1,12 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using wtf.cluster.JoyCon.InputData;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputReports;
 
 /// <summary>
-/// Represents a simple input report from a Joy-Con controller.
+/// Simple input report from the Joy-Con controller.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Size = 12, Pack = 1)]
 public class InputSimple : IJoyConReport

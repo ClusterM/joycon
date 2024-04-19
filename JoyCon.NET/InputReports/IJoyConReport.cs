@@ -1,7 +1,7 @@
-﻿namespace wtf.cluster.joycon.JoyConReports;
+﻿namespace wtf.cluster.JoyCon.InputReports;
 
 /// <summary>
-/// Represents a report from a Joy-Con.
+/// Represents a report from the controller.
 /// </summary>
 public interface IJoyConReport
 {

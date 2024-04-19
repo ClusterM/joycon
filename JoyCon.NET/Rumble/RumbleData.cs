@@ -2,26 +2,26 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.Rumble;
 
 /// <summary>
 /// Rumble data, e.g. frequency and amplitude.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Size = 4, Pack = 1)]
-public class Rumble
+public class RumbleData
 {
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-    private readonly byte[] rumbleData;
+    private byte[] rumbleData;
 
     /// <summary>
     /// Frequency of the rumble.
     /// </summary>
-    public double Frequency { get; }
+    public double Frequency { get => frequency; set => Recalculate(value, amplitude); }
 
     /// <summary>
     /// Amplitude of the rumble.
     /// </summary>
-    public double Amplitude { get; }
+    public double Amplitude { get => amplitude; set => Recalculate(frequency, value); }
 
     /// <summary>
     /// Constructor.
@@ -29,7 +29,17 @@ public class Rumble
     /// <param name="freq">Frequency.</param>
     /// <param name="amp">Amplitude.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when frequency or amplitude is out of range.</exception>
-    public Rumble(double freq, double amp)
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+    public RumbleData(double freq, double amp) => Recalculate(freq, amp);
+
+    /// <summary>
+    /// Default constructor, creates a disabled rumble.
+    /// </summary>
+    public RumbleData() : this(0, 0)
+    {
+    }
+
+    private void Recalculate(double freq, double amp)
     {
         if (amp == 0)
         {
@@ -65,13 +75,6 @@ public class Rumble
         rumbleData = [(byte)(dataFreq[0] | dataAmp[0]), (byte)(dataFreq[1] | dataAmp[1]), (byte)(dataFreq[2] | dataAmp[2]), (byte)(dataFreq[3] | dataAmp[3])];
         Frequency = FreqTable[freqIndex].Value;
         Amplitude = AmpTable[ampIndex].Value;
-    }
-
-    /// <summary>
-    /// Default constructor, creates a disabled rumble.
-    /// </summary>
-    public Rumble() : this(0, 0)
-    {
     }
 
     /// <summary>
@@ -351,6 +354,8 @@ public class Rumble
         new Rec(0.981, new byte[] { 0x00, 0xC6, 0x80, 0x71 }),
         new Rec(1.003, new byte[] { 0x00, 0xC8, 0x00, 0x72 }),
     ];
+    private readonly double frequency;
+    private readonly double amplitude;
 
     private struct Rec
     {

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports.Calibration;
+namespace wtf.cluster.JoyCon.Calibration;
 
 /// <summary>
 /// IMU calibration data: accelerometer and gyroscope.

@@ -1,9 +1,9 @@
-﻿namespace wtf.cluster.joycon.JoyConReports.Calibration;
+﻿namespace wtf.cluster.JoyCon.Calibration;
 
 /// <summary>
 /// Parameters for the left and right sticks.
 /// </summary>
-public class SticksParametersSet
+public class StickParametersSet
 {
     /// <summary>
     /// Parameters for the left stick.
@@ -15,7 +15,7 @@ public class SticksParametersSet
     /// </summary>
     public StickParameters RightStickParameters { get; internal set; }
 
-    internal SticksParametersSet(StickParameters leftStickParameters, StickParameters rightStickParameters)
+    internal StickParametersSet(StickParameters leftStickParameters, StickParameters rightStickParameters)
     {
         LeftStickParameters = leftStickParameters;
         RightStickParameters = rightStickParameters;

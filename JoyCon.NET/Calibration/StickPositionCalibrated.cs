@@ -1,4 +1,4 @@
-﻿namespace wtf.cluster.joycon.JoyConReports.Calibration;
+﻿namespace wtf.cluster.JoyCon.Calibration;
 
 /// <summary>
 /// Simple struct to store calculated and calibrated stick position as X and Y values from -1 to 1.
@@ -20,6 +20,6 @@ public struct StickPositionCalibrated
     {
         var xSign = X >= 0 ? "+" : string.Empty;
         var ySign = Y >= 0 ? "+" : string.Empty;
-        return $"X: {xSign}{X * 100:0.}%, Y: {ySign}{Y * 100:0.}%";
+        return $"X: {xSign}{X * 100:000.}%, Y: {ySign}{Y * 100:000.}%";
     }
 }

@@ -1,12 +1,12 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.ExtraData;
 
 /// <summary>
 /// Elapsed time for each trigger button in milliseconds.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Size = 14, Pack = 1)]
-public class TriggerButtonElapsedTime
+public class TriggerButtonsElapsedTime
 {
     [MarshalAs(UnmanagedType.U2)]
     private readonly ushort l;

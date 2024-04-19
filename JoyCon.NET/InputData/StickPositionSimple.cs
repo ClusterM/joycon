@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputData;
 
 /// <summary>
 /// Simple analog stick data with X and Y values.

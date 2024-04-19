@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
-using wtf.cluster.joycon.JoyConReports.Calibration;
+using wtf.cluster.JoyCon.Calibration;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputData;
 
 /// <summary>
 /// Accelerometer and gyroscope data frame.

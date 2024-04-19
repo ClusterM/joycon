@@ -1,12 +1,12 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputData;
 
 /// <summary>
-/// Button states.
+/// Buttons state.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Size = 3, Pack = 1)]
-public class ButtonsStandard
+public class ButtonsFull
 {
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
     private readonly byte[] buttons = new byte[3];
@@ -35,11 +35,11 @@ public class ButtonsStandard
     /// <summary>
     /// Button SR pressed (left or right JoyCon).
     /// </summary>
-    public bool SR => ((buttons[0] & 0x10) != 0) || ((buttons[2] & 0x10) != 0);
+    public bool SR => (buttons[0] & 0x10) != 0 || (buttons[2] & 0x10) != 0;
     /// <summary>
     /// Button SL pressed (left or right JoyCon).
     /// </summary>
-    public bool SL => ((buttons[0] & 0x20) != 0) || ((buttons[2] & 0x20) != 0);
+    public bool SL => (buttons[0] & 0x20) != 0 || (buttons[2] & 0x20) != 0;
     /// <summary>
     /// Button R pressed.
     /// </summary>
@@ -101,10 +101,10 @@ public class ButtonsStandard
     /// </summary>
     public bool ZL => (buttons[2] & 0x80) != 0;
 
-    private ButtonsStandard()
+    private ButtonsFull()
     {
     }
 
     /// <inheritdoc/>
-    public override string ToString() => $"Y: {Y}, X: {X}, B: {B}, A: {A}, SR: {SR}, SL: {SL}, R: {R}, L: {L}, ZR: {ZR}, ZL: {ZL}, Minus: {Minus}, Plus: {Plus}, RStick: {RStickClick}, LStick: {LStickClick}, Home: {Home}, Capture: {Capture}, ChargingGrip: {ChargingGrip}, ↓: {Down}, ↑: {Up}, →: {Right}, ←: {Left}";
+    public override string ToString() => $"A: {A}, B: {B}, X: {X}, Y: {Y}, L: {L}, R: {R}, ZL: {ZL}, ZR: {ZR}, SL: {SL}, SR: {SR}, Minus: {Minus}, Plus: {Plus}, Home: {Home}, Capture: {Capture}, ↑: {Up}, ↓: {Down}, →: {Right}, ←: {Left}, LStick: {LStickClick}, RStick: {RStickClick}";
 }

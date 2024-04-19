@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.Rumble;
 
 /// <summary>
 /// Set of rumble data for left and right rumble actuators.
@@ -10,22 +10,22 @@ public class RumbleSet
     /// <summary>
     /// Left rumble actuator frequency and amplitude.
     /// </summary>
-    public Rumble LeftRumble { get; set; }
+    public RumbleData LeftRumble { get; set; }
 
     /// <summary>
     /// Right rumble actuator frequency and amplitude.
     /// </summary>
-    public Rumble RightRumble { get; set; }
+    public RumbleData RightRumble { get; set; }
 
     /// <summary>
     /// Creates a new rumble set.
     /// </summary>
     /// <param name="leftRumble">Left rumble actuator frequency and amplitude.</param>
     /// <param name="rightRumble">Right rumble actuator frequency and amplitude.</param>
-    public RumbleSet(Rumble? leftRumble, Rumble? rightRumble)
+    public RumbleSet(RumbleData? leftRumble, RumbleData? rightRumble)
     {
-        LeftRumble = leftRumble ?? new Rumble();
-        RightRumble = rightRumble ?? new Rumble();
+        LeftRumble = leftRumble ?? new RumbleData();
+        RightRumble = rightRumble ?? new RumbleData();
     }
 
     /// <summary>
@@ -37,8 +37,8 @@ public class RumbleSet
     /// <param name="ampRight">Right rumble actuator amplitude.</param>
     public RumbleSet(double freqLeft, double ampLeft, double freqRight, double ampRight)
     {
-        LeftRumble = new Rumble(freqLeft, ampLeft);
-        RightRumble = new Rumble(freqRight, ampRight);
+        LeftRumble = new RumbleData(freqLeft, ampLeft);
+        RightRumble = new RumbleData(freqRight, ampRight);
     }
 
     /// <summary>
@@ -48,8 +48,8 @@ public class RumbleSet
     /// <param name="ampBoth">Amplitude.</param>
     public RumbleSet(double freqBoth, double ampBoth)
     {
-        LeftRumble = new Rumble(freqBoth, ampBoth);
-        RightRumble = new Rumble(freqBoth, ampBoth);
+        LeftRumble = new RumbleData(freqBoth, ampBoth);
+        RightRumble = new RumbleData(freqBoth, ampBoth);
     }
 
     /// <summary>
@@ -57,8 +57,8 @@ public class RumbleSet
     /// </summary>
     public RumbleSet()
     {
-        LeftRumble = new Rumble();
-        RightRumble = new Rumble();
+        LeftRumble = new RumbleData();
+        RightRumble = new RumbleData();
     }
 
     /// <summary>

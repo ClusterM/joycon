@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputReports;
 
 /// <summary>
-/// Reply to a subcommand (report 0x21).
+/// Reply to a subcommand.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public class SubCmdReply

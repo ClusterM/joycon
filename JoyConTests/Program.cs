@@ -1,7 +1,10 @@
 ﻿using HidSharp;
-using wtf.cluster.joycon;
-using wtf.cluster.joycon.JoyConReports;
-using wtf.cluster.joycon.JoyConReports.Calibration;
+using System.Text;
+using wtf.cluster.JoyCon;
+using wtf.cluster.JoyCon.Calibration;
+using wtf.cluster.JoyCon.ExtraData;
+using wtf.cluster.JoyCon.InputReports;
+using wtf.cluster.JoyCon.Rumble;
 
 namespace JoyConTests;
 
@@ -9,6 +12,8 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
+        Console.OutputEncoding = Encoding.UTF8;
+
         // Get a list of all HID devices
         DeviceList list = DeviceList.Local;
         // Get all devices developed by Nintendo
@@ -27,11 +32,11 @@ internal class Program
 
         // First of all, we need to set format of the input reports,
         // most of the time you will need to use InputReportMode.Full mode
-        await joycon.SetInputReportModeAsync(JoyCon.InputReportMode.Full);
+        await joycon.SetInputReportModeAsync(JoyCon.InputReportType.Full);
 
         // Get some information about the controller
         DeviceInfo deviceInfo = await joycon.GetDeviceInfoAsync();
-        Console.WriteLine($"Type: {deviceInfo.ControllerType}, Firmware: {deviceInfo.FirmwareVersionMajor}.{deviceInfo.FirmwareVersionMinor}, {deviceInfo}");
+        Console.WriteLine($"Type: {deviceInfo.ControllerType}, Firmware: {deviceInfo.FirmwareVersionMajor}.{deviceInfo.FirmwareVersionMinor}");
         var serial = await joycon.GetSerialNumberAsync();
         Console.WriteLine($"Serial number: {serial ?? "<none>"}");
         ControllerColors? colors = await joycon.GetColorsAsync();
@@ -41,7 +46,7 @@ internal class Program
         }
         else
         {
-            Console.WriteLine("Colors not specified, seems like controller is gray.");
+            Console.WriteLine("Colors not specified, seems like controller is grey.");
         }
 
         // Enable IMU (accelerometer and gyroscope)
@@ -52,33 +57,35 @@ internal class Program
         await joycon.SetPlayerLeds(JoyCon.LedState.Off, JoyCon.LedState.On, JoyCon.LedState.Off, JoyCon.LedState.Blinking);
 
         // Get factory calibration data
-        Calibration facCal = await joycon.GetFactoryCalibrationAsync();
+        CalibrationData facCal = await joycon.GetFactoryCalibrationAsync();
         // Get user calibration data
-        Calibration userCal = await joycon.GetUserCalibrationAsync();
+        CalibrationData userCal = await joycon.GetUserCalibrationAsync();
         // Combine both calibrations, e.g. user calibration has higher priority
-        Calibration calibration = facCal + userCal;
+        CalibrationData calibration = facCal + userCal;
         // Get some parameters for the sticks
-        SticksParametersSet sticksParameters = await joycon.GetSticksParametersAsync();
+        StickParametersSet sticksParameters = await joycon.GetStickParametersAsync();
 
+        (var cX, var cY) = (Console.CursorLeft, Console.CursorTop);
         var i = 0;
         while (true)
         {
             try
             {
+                Console.SetCursorPosition(cX, cY);
                 // Read input report from the controller
                 IJoyConReport input = await joycon.ReadAsync();
                 // Check the type of the input report, most likely it will be InputWithImu
-                if (input is InputWithImu j)
+                if (input is InputFullWithImu j)
                 {
                     // Some base data from the controller
-                    Console.WriteLine($"LeftStick: ({j.LeftStick}), RightStick: ({j.RightStick}), Buttons: ({j.Buttons}), Battery: {j.Battery}, Charging: {j.Charging}, Connection: {j.Connection}");
+                    Console.WriteLine($"LeftStick: ({j.LeftStick}), RightStick: ({j.RightStick}), Buttons: ({j.Buttons}), Battery: {j.Battery}, Charging: {j.Charging}          ");
                     // But we need calibrated data
                     StickPositionCalibrated leftStickCalibrated = j.LeftStick.GetCalibrated(calibration.LeftStickCalibration!, sticksParameters.LeftStickParameters.DeadZone);
                     StickPositionCalibrated rightStickCalibrated = j.RightStick.GetCalibrated(calibration.RightStickCalibration!, sticksParameters.RightStickParameters.DeadZone);
-                    Console.WriteLine($"Calibrated left stick: ({leftStickCalibrated}), right stick: ({rightStickCalibrated}");
+                    Console.WriteLine($"Calibrated LeftStick: (({leftStickCalibrated}), RightStick: ({rightStickCalibrated}))          ");
                     // And accelerometer and gyroscope data
                     ImuFrameCalibrated calibratedImu = j.Imu.Frames[0].GetCalibrated(calibration.ImuCalibration!);
-                    Console.WriteLine($"Calibrated IMU: {calibratedImu}");
+                    Console.WriteLine($"Calibrated IMU: ({calibratedImu})          ");
                 }
                 else
                 {
@@ -87,8 +94,7 @@ internal class Program
                 if (i++ % 30 == 0)
                 {
                     // Periodically send rumble command to the controller
-                    await joycon.WriteRuble(new RumbleSet(new Rumble(40.9, 1), new Rumble(65, 1)));
-                    Console.WriteLine("Rumble");
+                    await joycon.WriteRumble(new RumbleSet(new RumbleData(40.9, 1), new RumbleData(65, 1)));
                 }
             }
             catch (Exception e)

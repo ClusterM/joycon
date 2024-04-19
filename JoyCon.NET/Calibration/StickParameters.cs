@@ -1,7 +1,7 @@
-﻿namespace wtf.cluster.joycon.JoyConReports.Calibration;
+﻿namespace wtf.cluster.JoyCon.Calibration;
 
 /// <summary>
-/// Parameters for a stick (dead-zone and range ratio).
+/// Parameters for the stick (dead-zone and range ratio).
 /// </summary>
 public class StickParameters
 {

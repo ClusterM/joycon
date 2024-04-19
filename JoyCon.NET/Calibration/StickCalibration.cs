@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 
-namespace wtf.cluster.joycon.JoyConReports.Calibration;
+namespace wtf.cluster.JoyCon.Calibration;
 
 /// <summary>
 /// Stick calibration data.

@@ -1,6 +1,6 @@
-﻿using wtf.cluster.joycon.JoyConReports.Calibration;
+﻿using wtf.cluster.JoyCon.Calibration;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputData;
 
 /// <summary>
 /// Stick position: X and Y values.
@@ -21,7 +21,7 @@ public interface IStickPosition
     /// Returns calculated and calibrated stick position as values from -1 to 1.
     /// </summary>
     /// <param name="calibration">Calibration data as <see cref="StickCalibration"/>, can be acquired using <see cref="JoyCon.GetFactoryCalibrationAsync"/> and <see cref="JoyCon.GetUserCalibrationAsync"/>.</param>
-    /// <param name="deadZone">Deadzone value, can be acquired using <see cref="JoyCon.GetSticksParametersAsync"/>, but it's near the same for all controllers. Default is 200.</param>
+    /// <param name="deadZone">Deadzone value, can be acquired using <see cref="JoyCon.GetStickParametersAsync"/>, but it's near the same for all controllers. Default is 200.</param>
     /// <returns></returns>
     public StickPositionCalibrated GetCalibrated(StickCalibration calibration, uint deadZone = 200)
     {

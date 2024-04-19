@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
-    <RootNamespace>wtf.cluster.joycon</RootNamespace>
+    <RootNamespace>wtf.cluster.JoyCon</RootNamespace>
     <LangVersion>12.0</LangVersion>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>

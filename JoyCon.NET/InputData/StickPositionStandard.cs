@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputData;
 
 /// <summary>
 /// Standard analog stick data with X and Y values.
@@ -14,12 +14,12 @@ public class StickPositionStandard : IStickPosition
     /// <summary>
     /// Stick X value.
     /// </summary>
-    public ushort X => (ushort)(leftStick[0] | ((leftStick[1] & 0xF) << 8));
+    public ushort X => (ushort)(leftStick[0] | (leftStick[1] & 0xF) << 8);
 
     /// <summary>
     /// Stick Y value.
     /// </summary>
-    public ushort Y => (ushort)((leftStick[1] >> 4) | (leftStick[2] << 4));
+    public ushort Y => (ushort)(leftStick[1] >> 4 | leftStick[2] << 4);
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     private StickPositionStandard()

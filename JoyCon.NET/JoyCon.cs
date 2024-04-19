@@ -7,10 +7,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using wtf.cluster.joycon.JoyConReports;
-using wtf.cluster.joycon.JoyConReports.Calibration;
+using wtf.cluster.JoyCon.Calibration;
+using wtf.cluster.JoyCon.ExtraData;
+using wtf.cluster.JoyCon.InputReports;
+using wtf.cluster.JoyCon.Rumble;
 
-namespace wtf.cluster.joycon;
+namespace wtf.cluster.JoyCon;
 
 /// <summary>
 /// Joy-Con controller to control Joy-Con or Pro Controller.
@@ -76,19 +78,19 @@ public class JoyCon
         /// </summary>
         SpiFlashSectorErase = 0x12,
         /// <summary>
-        /// Reset NFC/IR MCU.
+        /// Reset MCU.
         /// </summary>
-        ResetNfcIrMcu = 0x20,
+        ResetMcu = 0x20,
         /// <summary>
-        /// Set NFC/IR MCU configuration. Write configuration data to MCU. This data can be IR configuration, NFC configuration or data for the 512KB MCU firmware update.
+        /// Set MCU configuration. Write configuration data to MCU. This data can be IR configuration, NFC configuration or data for the 512KB MCU firmware update.
         /// </summary>
-        SetNfcIrMcuConfig = 0x21,
+        SetMcuConfig = 0x21,
         /// <summary>
-        /// Set NFC/IR MCU state. 
+        /// Set MCU state. 
         /// </summary>
-        SetNfcIrMcuState = 0x22,
+        SetMcuState = 0x22,
         /// <summary>
-        /// Set unknown data (fw 3.86 and up). Sets a byte to x01 (enable something?) and sets also an unknown data (configuration? for NFC/IR MCU?) to the bt device struct that copies it from given argument.
+        /// Set unknown data (fw 3.86 and up). Sets a byte to x01 (enable something?) and sets also an unknown data (configuration? for MCU?) to the bt device struct that copies it from given argument.
         /// </summary>
         SetUnknownX24 = 0x24,
         /// <summary>
@@ -96,21 +98,21 @@ public class JoyCon
         /// </summary>
         ResetUnknownX24 = 0x25,
         /// <summary>
-        /// Set unknown NFC/IR MCU data.
+        /// Set unknown MCU data.
         /// </summary>
-        SetUnknownNfcIrMcuData = 0x28,
+        SetUnknownMcuData = 0x28,
         /// <summary>
-        /// Get <see cref="SetUnknownNfcIrMcuData"/> NFC/IR MCU data.
+        /// Get <see cref="SetUnknownMcuData"/> MCU data.
         /// </summary>
-        GetNfcIrMcuData = 0x29,
+        GetMcuData = 0x29,
         /// <summary>
         /// Set GPIO Pin Output value (2 pin @ port 2).
         /// </summary>
         SetGpioOutputPort2 = 0x2A,
         /// <summary>
-        /// Get <see cref="GetNfcIrMcuData"/> NFC/IR MCU data.
+        /// Get <see cref="GetMcuData"/> MCU data.
         /// </summary>
-        GetNfcIrMcuData2 = 0x2B,
+        GetMcuData2 = 0x2B,
         /// <summary>
         /// Set player lights.
         /// </summary>
@@ -132,7 +134,7 @@ public class JoyCon
         /// </summary>
         SetImuSensitivity = 0x41,
         /// <summary>
-        /// Write to IMU registers. Consult LSM6DS3.pdf for all registers and their meaning. The registers addresses are mapped 1:1 in the subcmd. With this subcmd you can completely control the IMU.
+        /// Write to IMU registers. Consult LSM6DS3 datasheet for all registers and their meaning. The registers addresses are mapped 1:1 in the subcmd. With this subcmd you can completely control the IMU.
         /// </summary>
         WriteImuRegister = 0x42,
         /// <summary>
@@ -140,9 +142,9 @@ public class JoyCon
         /// </summary>
         ReadImuRegister = 0x43,
         /// <summary>
-        /// Enable vibration.
+        /// Enable rumble.
         /// </summary>
-        EnableVibration = 0x48,
+        EnableRumble = 0x48,
         /// <summary>
         /// Get regulated voltage. Internally, the values come from 1000mV - 1800mV regulated voltage samples, that are translated to 1320-1680 values. These follow a curve between 3.3V and 4.2V. So a 2.5x multiplier can get us the real battery voltage in mV.
         /// </summary>
@@ -158,12 +160,12 @@ public class JoyCon
     }
 
     /// <summary>
-    /// Input report mode, e.g. format of the data sent by the controller.
+    /// Input report type, e.g. type of the data sent by the controller.
     /// </summary>
-    public enum InputReportMode : byte
+    public enum InputReportType : byte
     {
         /// <summary>
-        /// Used with cmd <see cref="WriteSpiFlashAsync"/> (?). Active polling for NFC/IR camera data. <see cref="InputReportMode.NfcIrMode"/> data format must be set first.
+        /// Used with cmd <see cref="OutputReportType.RequestMcuData"/>. Active polling for MCU (NFC/IR camera) data. <see cref="InputReportType.McuMode"/> data format must be set first.
         /// </summary>
         NfcIr0 = 0x00,
         /// <summary>
@@ -179,33 +181,64 @@ public class JoyCon
         /// </summary>
         NfcIr3 = 0x03,
         /// <summary>
-        /// MCU update state report?
+        /// Full input report + subcommand reply.
+        /// </summary>
+        SubcommandReply = 0x21,
+        /// <summary>
+        /// MCU FW update input report.
         /// </summary>
         McuUpdateStateReport = 0x23,
         /// <summary>
-        /// Standard full mode. Pushes current state @60Hz.
+        /// Standard full report. Pushes current buttons/sticks state @ 60Hz.
         /// </summary>
         Full = 0x30,
         /// <summary>
-        /// NFC/IR mode. Pushes large packets @60Hz
+        /// MCU mode. Pushes large packets: standard input report + MCU data (usually NFC/IR) input report.
         /// </summary>
-        NfcIrMode = 0x31,
+        McuMode = 0x31,
+        /// <summary>
+        /// Unknown. Sends standard input reports.
+        /// </summary>
+        UnknownX32 = 0x32,
+        /// <summary>
+        /// Unknown. Sends standard input reports.
+        /// </summary>
+        UnknownX33 = 0x33,
         /// <summary>
         /// Unknown.
         /// </summary>
-        Unknown1 = 0x32,
+        UnknownX35 = 0x35,
         /// <summary>
-        /// Unknown.
-        /// </summary>
-        Unknown2 = 0x33,
-        /// <summary>
-        /// Unknown.
-        /// </summary>
-        Unknown3 = 0x35,
-        /// <summary>
-        /// Simple mode. Pushes updates with every data change.
+        /// Simple report. Pushes current buttons/sticks state with every data change.
         /// </summary>
         Simple = 0x3F
+    }
+
+    /// <summary>
+    /// Output report type.
+    /// </summary>
+    public enum OutputReportType
+    {
+        /// <summary>
+        /// Subcommand (also includes rumble data).
+        /// </summary>
+        Subcommand = 0x01,
+        /// <summary>
+        /// MCU FW Update packet.
+        /// </summary>
+        McuUpdatePacket = 0x03,
+        /// <summary>
+        /// Only rumble data.
+        /// </summary>
+        RumbleOnly = 0x10,
+        /// <summary>
+        /// Request specific data from the MCU (also includes rumble data).
+        /// </summary>
+        RequestMcuData = 0x11,
+        /// <summary>
+        /// Unknown. Does the same thing with <see cref="Subcommand.SetUnknownMcuData"/> subcommand.
+        /// </summary>
+        UnknownX12 = 0x12
     }
 
     /// <summary>
@@ -321,15 +354,17 @@ public class JoyCon
 
         return len == 0
             ? throw new InvalidDataException("No data.")
-            : buf[0] switch
+            : (InputReportType)buf[0] switch
             {
-                0x21 => FromBytes<InputWithSubCmdReply>(buf),
-                0x23 => FromBytes<InputWithNfcIrMcuFw>(buf),
-                0x30 => FromBytes<InputWithImu>(buf),
-                0x31 => FromBytes<InputWithImuExtra>(buf),
+                InputReportType.Simple => FromBytes<InputSimple>(buf),
+                InputReportType.Full => FromBytes<InputFullWithImu>(buf),
+                InputReportType.SubcommandReply => FromBytes<InputFullWithSubCmdReply>(buf),
+                InputReportType.McuUpdateStateReport => FromBytes<InputFullWithMcuFw>(buf),
+                InputReportType.McuMode => FromBytes<InputFullWithImuMcu>(buf),
                 /* unknown */
-                0x32 or 0x33 => FromBytes<InputWithImu>(buf),
-                0x3F => FromBytes<InputSimple>(buf),
+                InputReportType.UnknownX32 => FromBytes<InputFullWithImu>(buf),
+                InputReportType.UnknownX33 => FromBytes<InputFullWithImu>(buf),
+                InputReportType.UnknownX35 => FromBytes<InputFullWithImu>(buf),
                 _ => throw new InvalidDataException($"Unknown report ID: 0x{buf[0]:X2}"),
             };
     }
@@ -352,13 +387,36 @@ public class JoyCon
         }
     }
 
-    private async Task<SubCmdReply?> WriteSubcommandReportAsync(byte reportID, RumbleSet? rumble, Subcommand subcommandID, byte[]? subcommandData = null, bool noWaitAck = false, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Write a subcommand to the controller using the specified output report ID.
+    /// </summary>
+    /// <param name="outputReportID">Output report ID.</param>
+    /// <param name="rumble">Optional rumble data if you want to keep the vibration on.</param>
+    /// <param name="subcommandID">Subcommand ID.</param>
+    /// <param name="subcommandData">Subcommand data.</param>
+    /// <param name="noWaitAck">True to not wait for acknowledgement.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The subcommand reply as <see cref="SubCmdReply"/> object or null if noWaitAck is true.</returns>
+    public async Task<SubCmdReply?> WriteSubcommandAsync(OutputReportType outputReportID, RumbleSet? rumble, Subcommand subcommandID, byte[]? subcommandData = null, bool noWaitAck = false, CancellationToken cancellationToken = default)
+        => await WriteSubcommandAsync((byte)outputReportID, rumble, subcommandID, subcommandData, noWaitAck, cancellationToken);
+
+    /// <summary>
+    /// Write a subcommand to the controller using the specified output report ID.
+    /// </summary>
+    /// <param name="outputReportID">Output report ID.</param>
+    /// <param name="rumble">Optional rumble data if you want to keep the vibration on.</param>
+    /// <param name="subcommandID">Subcommand ID.</param>
+    /// <param name="subcommandData">Subcommand data.</param>
+    /// <param name="noWaitAck">True to not wait for acknowledgement.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The subcommand reply as <see cref="SubCmdReply"/> object or null if noWaitAck is true.</returns>
+    public async Task<SubCmdReply?> WriteSubcommandAsync(byte outputReportID, RumbleSet? rumble, Subcommand subcommandID, byte[]? subcommandData = null, bool noWaitAck = false, CancellationToken cancellationToken = default)
     {
         await semaphore.WaitAsync(cancellationToken);
         try
         {
             var buf = new byte[0x40];
-            buf[0] = reportID;
+            buf[0] = outputReportID;
             buf[1] = (byte)(packetNum++ & 0x0F);
             var rumbleRaw = rumble != null ? rumble.ToBytes() : new RumbleSet().ToBytes();
             Array.Copy(rumbleRaw, 0, buf, 2, rumbleRaw.Length);
@@ -380,7 +438,7 @@ public class JoyCon
             while (!noWaitAck)
             {
                 IJoyConReport input = await ReadAsyncNotThreadSafe(cancellationToken);
-                if (input is InputWithSubCmdReply i && i.SubcommandReply.SubcommandID == subcommandID)
+                if (input is InputFullWithSubCmdReply i && i.SubcommandReply.SubcommandID == subcommandID)
                 {
                     return i.SubcommandReply;
                 }
@@ -407,17 +465,17 @@ public class JoyCon
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The subcommand reply as <see cref="SubCmdReply"/> object or null if noWaitAck is true.</returns>
     public async Task<SubCmdReply?> WriteSubcommandAsync(RumbleSet? rumble, Subcommand subcommandID, byte[]? subcommandData = null, bool noWaitAck = false, CancellationToken cancellationToken = default)
-        => await WriteSubcommandReportAsync(0x01, rumble, subcommandID, subcommandData, noWaitAck, cancellationToken);
+        => await WriteSubcommandAsync(OutputReportType.Subcommand, rumble, subcommandID, subcommandData, noWaitAck, cancellationToken);
 
     /// <summary>
-    /// Set input report mode, e.g. format of the data sent by the controller. <see cref="InputReportMode.Full"/> is recommended for most cases.
+    /// Set input report mode, e.g. format of the data sent by the controller. <see cref="InputReportType.Full"/> is recommended for most cases.
     /// </summary>
-    /// <param name="inputReportMode">Input report mode as <see cref="InputReportMode"/>.</param>
+    /// <param name="inputReportMode">Input report mode as <see cref="InputReportType"/>.</param>
     /// <param name="noWaitAck">True to not wait for acknowledgement.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
     /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed.</exception>
-    public async Task SetInputReportModeAsync(InputReportMode inputReportMode, bool noWaitAck = false, CancellationToken cancellationToken = default)
+    public async Task SetInputReportModeAsync(InputReportType inputReportMode, bool noWaitAck = false, CancellationToken cancellationToken = default)
     {
         SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.SetInputReportMode, [(byte)inputReportMode], noWaitAck, cancellationToken: cancellationToken);
         if (reply != null && !reply.Acknowledged)
@@ -453,7 +511,7 @@ public class JoyCon
     /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed.</exception>
     public async Task EnableRumble(bool enable, bool noWaitAck = false, CancellationToken cancellationToken = default)
     {
-        SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.EnableVibration, [enable ? (byte)0x01 : (byte)0x00], noWaitAck, cancellationToken: cancellationToken);
+        SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.EnableRumble, [enable ? (byte)0x01 : (byte)0x00], noWaitAck, cancellationToken: cancellationToken);
         if (reply != null && !reply.Acknowledged)
         {
             throw new InvalidOperationException("Failed to enable/disable vibration.");
@@ -466,8 +524,8 @@ public class JoyCon
     /// <param name="rumbleSet">Set of rumble data as <see cref="RumbleSet"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
-    public async Task WriteRuble(RumbleSet rumbleSet, CancellationToken cancellationToken = default)
-        => await WriteSubcommandReportAsync(0x10, rumbleSet, Subcommand.Nothing, null, true, cancellationToken: cancellationToken);
+    public async Task WriteRumble(RumbleSet rumbleSet, CancellationToken cancellationToken = default)
+        => await WriteSubcommandAsync(OutputReportType.RumbleOnly, rumbleSet, Subcommand.Nothing, null, true, cancellationToken: cancellationToken);
 
     /// <summary>
     /// Write a rumble data to the controller.
@@ -476,8 +534,8 @@ public class JoyCon
     /// <param name="rightRumble">Right rumble data as <see cref="Rumble"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
-    public async Task WriteRuble(Rumble leftRumble, Rumble rightRumble, CancellationToken cancellationToken = default)
-        => await WriteRuble(new RumbleSet(leftRumble, rightRumble), cancellationToken);
+    public async Task WriteRumble(RumbleData leftRumble, RumbleData rightRumble, CancellationToken cancellationToken = default)
+        => await WriteRumble(new RumbleSet(leftRumble, rightRumble), cancellationToken);
 
     /// <summary>
     /// Write a rumble data to the controller.
@@ -488,8 +546,8 @@ public class JoyCon
     /// <param name="ampRight">Right rumble amplitude.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
-    public async Task WriteRuble(double freqLeft, double ampLeft, double freqRight, double ampRight, CancellationToken cancellationToken = default)
-        => await WriteRuble(new RumbleSet(freqLeft, ampLeft, freqRight, ampRight), cancellationToken);
+    public async Task WriteRumble(double freqLeft, double ampLeft, double freqRight, double ampRight, CancellationToken cancellationToken = default)
+        => await WriteRumble(new RumbleSet(freqLeft, ampLeft, freqRight, ampRight), cancellationToken);
 
     /// <summary>
     /// Write a rumble data to the controller.
@@ -498,8 +556,8 @@ public class JoyCon
     /// <param name="ampBoth">Amplitude for both left and right rumble.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
-    public async Task WriteRuble(double freqBoth, double ampBoth, CancellationToken cancellationToken = default)
-        => await WriteRuble(new RumbleSet(freqBoth, ampBoth), cancellationToken);
+    public async Task WriteRumble(double freqBoth, double ampBoth, CancellationToken cancellationToken = default)
+        => await WriteRumble(new RumbleSet(freqBoth, ampBoth), cancellationToken);
 
     /// <summary>
     /// Set IMU sensor sensitivity.
@@ -597,15 +655,15 @@ public class JoyCon
     /// Get trigger button elapsed time.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The trigger button elapsed time as <see cref="TriggerButtonElapsedTime"/>.</returns>
+    /// <returns>The trigger button elapsed time as <see cref="TriggerButtonsElapsedTime"/>.</returns>
     /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed.</exception>
-    public async Task<TriggerButtonElapsedTime> GetTriggerButtonElapsedTimeAsync(CancellationToken cancellationToken = default)
+    public async Task<TriggerButtonsElapsedTime> GetTriggerButtonElapsedTimeAsync(CancellationToken cancellationToken = default)
     {
         /* To be honest, I have no idea what this is. */
         SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.TriggerButtonsElapseTime, null, false, cancellationToken: cancellationToken);
         return reply != null && !reply.Acknowledged
             ? throw new InvalidOperationException("Failed to get trigger button elapsed time.")
-            : FromBytes<TriggerButtonElapsedTime>(reply!.Data.ToArray());
+            : FromBytes<TriggerButtonsElapsedTime>(reply!.Data.ToArray());
     }
 
     /// <summary>
@@ -696,7 +754,7 @@ public class JoyCon
     }
 
     /// <summary>
-    /// Erase the SPI flash sector. This will erase 4KB of data.
+    /// Erase the SPI flash sector. This will erase 4KB of data. (WARNING! This will erase all 4KB of data in the sector!)
     /// </summary>
     /// <param name="address">Address of the sector.</param>
     /// <param name="noWaitAck">True to not wait for acknowledgement.</param>
@@ -721,7 +779,7 @@ public class JoyCon
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The factory calibration data as a <see cref="Calibration"/> object.</returns>
-    public async Task<Calibration> GetFactoryCalibrationAsync(CancellationToken cancellationToken = default)
+    public async Task<CalibrationData> GetFactoryCalibrationAsync(CancellationToken cancellationToken = default)
     {
         var imuData = await ReadSpiFlashAsync(0x6020, 24, cancellationToken);
         var sticksData = await ReadSpiFlashAsync(0x603D, 9 * 2, cancellationToken);
@@ -730,7 +788,7 @@ public class JoyCon
         var leftStickCal = StickCalibration.FromBytes(false, sticksData[0..9]);
         var rightStickCal = StickCalibration.FromBytes(true, sticksData[9..18]);
 
-        return new Calibration
+        return new CalibrationData
         {
             ImuCalibration = imuCal,
             LeftStickCalibration = leftStickCal,
@@ -743,7 +801,7 @@ public class JoyCon
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The user calibration data as <see cref="Calibration"/> object.</returns>
-    public async Task<Calibration> GetUserCalibrationAsync(CancellationToken cancellationToken = default)
+    public async Task<CalibrationData> GetUserCalibrationAsync(CancellationToken cancellationToken = default)
     {
         var imuData = await ReadSpiFlashAsync(0x8026, 26, cancellationToken);
         var sticksData = await ReadSpiFlashAsync(0x8010, 2 + 9 + 2 + 9, cancellationToken);
@@ -752,7 +810,7 @@ public class JoyCon
         StickCalibration? leftStickCal = (sticksData[0], sticksData[1]) == (0xB2, 0xA1) ? StickCalibration.FromBytes(false, sticksData[2..11]) : null;
         StickCalibration? rightStickCal = (sticksData[11], sticksData[12]) == (0xB2, 0xA1) ? StickCalibration.FromBytes(true, sticksData[13..22]) : null;
 
-        return new Calibration
+        return new CalibrationData
         {
             ImuCalibration = imuCal,
             LeftStickCalibration = leftStickCal,
@@ -761,15 +819,15 @@ public class JoyCon
     }
 
     /// <summary>
-    /// Get the minor stick parameters: dead-zone and range ratio.
+    /// Get a minor stick parameters: dead-zone and range ratio.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The stick parameters as <see cref="StickParameters"/> object.</returns>
-    public async Task<SticksParametersSet> GetSticksParametersAsync(CancellationToken cancellationToken = default)
+    public async Task<StickParametersSet> GetStickParametersAsync(CancellationToken cancellationToken = default)
     {
         var leftData = await ReadSpiFlashAsync(0x6086, 18, cancellationToken);
         var rightData = await ReadSpiFlashAsync(0x6098, 18, cancellationToken);
-        return new SticksParametersSet(
+        return new StickParametersSet(
             StickParameters.FromBytes(leftData),
             StickParameters.FromBytes(rightData)
         );
@@ -869,4 +927,7 @@ public class JoyCon
                 0 => (ushort)(data[a.source + 1] << 8 & 0xF00 | data[a.source]),
                 _ => (ushort)(data[a.source + 1] << 4 | data[a.source] >> 4)
             }).ToArray();
+
+    /// <inheritdoc/>
+    public override string ToString() => $"Joy-Con {HidStream.Device}";
 }

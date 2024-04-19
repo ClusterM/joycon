@@ -1,9 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace wtf.cluster.joycon.JoyConReports;
+namespace wtf.cluster.JoyCon.InputData;
 
 /// <summary>
-/// Button states, simple version.
+/// Buttons state, simple version.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Size = 2, Pack = 1)]
 public class ButtonsSimple
@@ -93,5 +93,5 @@ public class ButtonsSimple
     }
 
     /// <inheritdoc/>
-    public override string ToString() => $"↓: {Down}, →: {Right}, ←: {Left}, ↑: {Up}, SL: {SL}, SR: {SR}, Minus: {Minus}, Plus: {Plus}, LStick: {LStickClick}, RStick: {RStickClick}, Home: {Home}, Capture: {Capture}, L/R: {LorR}, ZL/ZR: {ZLorZR}";
+    public override string ToString() => $"↑: {Up}, ↓: {Down}, ←: {Left}, →: {Right}, SL: {SL}, SR: {SR}, Minus: {Minus}, Plus: {Plus}, Home: {Home}, Capture: {Capture}, L/R: {LorR}, ZL/ZR: {ZLorZR}ss, LStick: {LStickClick}, RStick: {RStickClick}";
 }
