@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using wtf.cluster.JoyCon.Calibration;
 using wtf.cluster.JoyCon.ExtraData;
+using wtf.cluster.JoyCon.HomeLed;
 using wtf.cluster.JoyCon.InputReports;
 using wtf.cluster.JoyCon.Rumble;
 
@@ -122,9 +123,9 @@ public class JoyCon
         /// </summary>
         GetPlayerLights = 0x31,
         /// <summary>
-        /// Set HOME Light.
+        /// Set Home LED.
         /// </summary>
-        SetHomeLight = 0x38,
+        SetHomeLed = 0x38,
         /// <summary>
         /// Enable IMU (6-Axis sensor).
         /// </summary>
@@ -444,14 +445,14 @@ public class JoyCon
                 }
                 if (waitCount++ > maxAckWaitCommands)
                 {
-                    throw new TimeoutException("Subcommand acknowledgement not received.");
+                    throw new TimeoutException($"Subcommand acknowledgement for command {(Subcommand)subcommandID} not received.");
                 }
             }
             return null;
         }
         finally
         {
-            _ = semaphore.Release();
+            semaphore.Release();
         }
     }
 
@@ -509,7 +510,7 @@ public class JoyCon
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
     /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed.</exception>
-    public async Task EnableRumble(bool enable, bool noWaitAck = false, CancellationToken cancellationToken = default)
+    public async Task EnableRumbleAsync(bool enable, bool noWaitAck = false, CancellationToken cancellationToken = default)
     {
         SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.EnableRumble, [enable ? (byte)0x01 : (byte)0x00], noWaitAck, cancellationToken: cancellationToken);
         if (reply != null && !reply.Acknowledged)
@@ -570,7 +571,7 @@ public class JoyCon
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
     /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed.</exception>
-    public async Task SetImuSensitivity(AccSensitivity accSensitivity, AccFilter accFilter, GyroSensitivity gyroSensitivity, GyroPerformance gyroPerformance, bool noWaitAck = false, CancellationToken cancellationToken = default)
+    public async Task SetImuSensitivityAsync(AccSensitivity accSensitivity, AccFilter accFilter, GyroSensitivity gyroSensitivity, GyroPerformance gyroPerformance, bool noWaitAck = false, CancellationToken cancellationToken = default)
     {
         SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.SetImuSensitivity, [(byte)gyroSensitivity, (byte)accSensitivity, (byte)gyroPerformance, (byte)accFilter], noWaitAck, cancellationToken: cancellationToken);
         if (reply != null && !reply.Acknowledged)
@@ -590,7 +591,7 @@ public class JoyCon
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
     /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed.</exception>
-    public async Task SetPlayerLeds(LedState led1, LedState led2, LedState led3, LedState led4, bool noWaitAck = false, CancellationToken cancellationToken = default)
+    public async Task SetPlayerLedsAsync(LedState led1, LedState led2, LedState led3, LedState led4, bool noWaitAck = false, CancellationToken cancellationToken = default)
     {
         byte data = 0;
         LedState[] leds = [led1, led2, led3, led4];
@@ -612,7 +613,7 @@ public class JoyCon
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>LEDs state as an array of <see cref="LedState"/>.</returns>
     /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed.</exception>
-    public async Task<LedState[]> GetPlayerLeds(CancellationToken cancellationToken = default)
+    public async Task<LedState[]> GetPlayerLedsAsync(CancellationToken cancellationToken = default)
     {
         SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.GetPlayerLights, null, false, cancellationToken: cancellationToken);
         if (reply != null && !reply.Acknowledged)
@@ -621,6 +622,23 @@ public class JoyCon
         }
         var data = reply!.Data[0];
         return Enumerable.Range(0, 4).Select(i => (LedState)((data >> i) & 0b0001_0001)).ToArray();
+    }
+
+    /// <summary>
+    /// Set Home LED dimming pattern.
+    /// </summary>
+    /// <param name="homeLedDimmingPattern">Home LED dimming pattern as <see cref="HomeLedDimmingPattern"/>.</param>
+    /// <param name="noWaitAck">True to not wait for acknowledgement.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The task.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed.</exception>
+    public async Task SetHomeLedDimmingPatternAsync(HomeLedDimmingPattern homeLedDimmingPattern, bool noWaitAck = false, CancellationToken cancellationToken = default)
+    {
+        SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.SetHomeLed, homeLedDimmingPattern.ToBytes(), noWaitAck, cancellationToken: cancellationToken);
+        if (reply != null && !reply.Acknowledged)
+        {
+            throw new InvalidOperationException("Failed to set Home LED dimming pattern.");
+        }
     }
 
     /// <summary>
@@ -761,7 +779,7 @@ public class JoyCon
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
     /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed or SPI flash is write-protected.</exception>
-    public async Task SpiFlashSectorErase(int address, bool noWaitAck = false, CancellationToken cancellationToken = default)
+    public async Task SpiFlashSectorEraseAsync(int address, bool noWaitAck = false, CancellationToken cancellationToken = default)
     {
         SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.SpiFlashSectorErase, BitConverter.GetBytes(address), noWaitAck, cancellationToken: cancellationToken);
         if (reply != null && !reply.Acknowledged)

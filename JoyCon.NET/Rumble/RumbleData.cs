@@ -7,11 +7,11 @@ namespace wtf.cluster.JoyCon.Rumble;
 /// <summary>
 /// Rumble data, e.g. frequency and amplitude.
 /// </summary>
-[StructLayout(LayoutKind.Sequential, Size = 4, Pack = 1)]
 public class RumbleData
 {
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
     private byte[] rumbleData;
+    private double frequency;
+    private double amplitude;
 
     /// <summary>
     /// Frequency of the rumble.
@@ -43,7 +43,7 @@ public class RumbleData
     {
         if (amp == 0)
         {
-            (Frequency, Amplitude) = (freq, amp);
+            (frequency, amplitude) = (freq, amp);
             rumbleData = [0x00, 0x01, 0x40, 0x40];
             return;
         }
@@ -73,8 +73,8 @@ public class RumbleData
         var dataFreq = FreqTable[freqIndex].Data;
         var dataAmp = AmpTable[ampIndex].Data;
         rumbleData = [(byte)(dataFreq[0] | dataAmp[0]), (byte)(dataFreq[1] | dataAmp[1]), (byte)(dataFreq[2] | dataAmp[2]), (byte)(dataFreq[3] | dataAmp[3])];
-        Frequency = FreqTable[freqIndex].Value;
-        Amplitude = AmpTable[ampIndex].Value;
+        frequency = FreqTable[freqIndex].Value;
+        amplitude = AmpTable[ampIndex].Value;
     }
 
     /// <summary>
@@ -354,8 +354,6 @@ public class RumbleData
         new Rec(0.981, new byte[] { 0x00, 0xC6, 0x80, 0x71 }),
         new Rec(1.003, new byte[] { 0x00, 0xC8, 0x00, 0x72 }),
     ];
-    private readonly double frequency;
-    private readonly double amplitude;
 
     private struct Rec
     {

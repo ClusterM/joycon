@@ -3,6 +3,7 @@ using System.Text;
 using wtf.cluster.JoyCon;
 using wtf.cluster.JoyCon.Calibration;
 using wtf.cluster.JoyCon.ExtraData;
+using wtf.cluster.JoyCon.HomeLed;
 using wtf.cluster.JoyCon.InputReports;
 using wtf.cluster.JoyCon.Rumble;
 
@@ -52,9 +53,9 @@ internal class Program
         // Enable IMU (accelerometer and gyroscope)
         await joycon.EnableImuAsync(true);
         // Enable rumble feature (it's enabled by default, actually)
-        await joycon.EnableRumble(true);
+        await joycon.EnableRumbleAsync(true);
         // You can control LEDs on the controller
-        await joycon.SetPlayerLeds(JoyCon.LedState.Off, JoyCon.LedState.On, JoyCon.LedState.Off, JoyCon.LedState.Blinking);
+        await joycon.SetPlayerLedsAsync(JoyCon.LedState.Off, JoyCon.LedState.On, JoyCon.LedState.Off, JoyCon.LedState.Blinking);
 
         // Get factory calibration data
         CalibrationData facCal = await joycon.GetFactoryCalibrationAsync();
@@ -64,6 +65,45 @@ internal class Program
         CalibrationData calibration = facCal + userCal;
         // Get some parameters for the sticks
         StickParametersSet sticksParameters = await joycon.GetStickParametersAsync();
+
+        // Home LED dimming pattern demo. Useless, but fun.
+        await joycon.SetHomeLedDimmingPatternAsync(new HomeLedDimmingPattern
+        {
+            StepDurationBase = 4,    // base duration is 40ms
+            StartLedBrightness = 0,  // 0%, off
+            FullCyclesNumber = 0,    // infinite
+            HomeLedDimmingSteps =
+            {
+                new HomeLedDimmingStep
+                {
+                    LedBrightness = 0x0F,    // 100%
+                    TransitionDuration = 2,  // base * 2 = 40ms * 2 = 80ms
+                    PauseDuration = 4,       // base * 4 = 40ms * 4 = 160ms
+                },
+                new HomeLedDimmingStep
+                {
+                    LedBrightness = 0x00,    // LED off
+                    TransitionDuration = 2,  // base * 2 = 40ms * 2 = 80ms
+                    PauseDuration = 4,       // base * 4 = 40ms * 4 = 160ms
+                },
+                new HomeLedDimmingStep { LedBrightness = 0x0F, TransitionDuration = 2, PauseDuration = 4 },
+                new HomeLedDimmingStep { LedBrightness = 0x00, TransitionDuration = 2, PauseDuration = 4 },
+                new HomeLedDimmingStep { LedBrightness = 0x0F, TransitionDuration = 2, PauseDuration = 4 },
+                new HomeLedDimmingStep { LedBrightness = 0x00, TransitionDuration = 2, PauseDuration = 4 },
+                new HomeLedDimmingStep
+                {
+                    LedBrightness = 0x08,    // 50%
+                    TransitionDuration = 8,  // base * 8 = 40ms * 8 = 320ms
+                    PauseDuration = 4,       // base * 8 = 40ms * 8 = 320ms
+                },
+                new HomeLedDimmingStep
+                {
+                    LedBrightness = 0x00,    // LED off
+                    TransitionDuration = 8,  // base * 8 = 40ms * 8 = 320ms
+                    PauseDuration = 15,      // base * 15 = 40ms * 15 = 600ms
+                }
+            },
+        });
 
         (var cX, var cY) = (Console.CursorLeft, Console.CursorTop);
         var i = 0;
