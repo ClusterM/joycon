@@ -6,10 +6,55 @@
     <RootNamespace>wtf.cluster.JoyCon</RootNamespace>
     <LangVersion>12.0</LangVersion>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <IncludeSymbols>False</IncludeSymbols>
+    <SignAssembly>False</SignAssembly>
+    <Title>$(AssemblyName)</Title>
+    <Authors>Alexey Cluster</Authors>
+    <Description>.NET library to access Nintendo Joy-Con (and Pro) controllers via bluetooth.</Description>
+    <PackageProjectUrl>https://github.com/ClusterM/joycon</PackageProjectUrl>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/ClusterM/joycon</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>joycon;switch;nintendo switch</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Copyright>© Alexey Cluster</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>none</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="HidSharp" Version="2.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

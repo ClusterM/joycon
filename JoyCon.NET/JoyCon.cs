@@ -20,7 +20,7 @@ namespace wtf.cluster.JoyCon;
 /// </summary>
 public class JoyCon
 {
-    private TimeSpan commandAckTimeout = TimeSpan.FromSeconds(1);
+    private readonly TimeSpan commandAckTimeout = TimeSpan.FromSeconds(1);
 
     private byte packetNum = 0;
 
@@ -362,7 +362,7 @@ public class JoyCon
     /// </summary>
     public event StoppedOnErrorHandler StoppedOnError = delegate { return Task.CompletedTask; };
 
-    private HidDevice hidDevice;
+    private readonly HidDevice hidDevice;
     private HidStream? hidStream;
     private CancellationTokenSource? cancellationTokenSource;
 
@@ -485,7 +485,7 @@ public class JoyCon
             if (report is InputFullWithSubCmdReply i && i.SubcommandReply.SubcommandID == subcommandID)
             {
                 reply = i.SubcommandReply;
-                semaphore.Release();
+                _ = semaphore.Release();
             }
             return Task.CompletedTask;
         });
@@ -521,12 +521,9 @@ public class JoyCon
             }
 
             var timeoutTask = Task.Delay(commandAckTimeout);
-            var waitTask = semaphore.WaitAsync();
-            var r = await Task.WhenAny(waitTask, timeoutTask);
-            if (r == timeoutTask)
-                throw new TimeoutException($"Subcommand acknowledgement for command {subcommandID} not received.");
-
-            return reply;
+            Task waitTask = semaphore.WaitAsync();
+            Task r = await Task.WhenAny(waitTask, timeoutTask);
+            return r == timeoutTask ? throw new TimeoutException($"Subcommand acknowledgement for command {subcommandID} not received.") : reply;
         }
         finally
         {

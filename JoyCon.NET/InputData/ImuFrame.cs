@@ -19,7 +19,7 @@ public class ImuFrame
     [MarshalAs(UnmanagedType.I2)]
     private readonly short accelY;
     /// <summary>
-    /// Accelerometer Y value.
+    /// Accelerometer Y value.  
     /// </summary>
     public short AccelY => accelY;
 
