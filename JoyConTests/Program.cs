@@ -26,10 +26,10 @@ internal class Program
             Console.WriteLine("No controller. Please connect Joy-Con or Pro controller via Bluetooth.");
             return;
         }
-        // Open the device
-        using HidStream hidStream = device.Open();
-        // Create a new JoyCon instance based on the HID stream
-        var joycon = new JoyCon(hidStream);
+        // Create a new JoyCon instance based on the HID device
+        var joycon = new JoyCon(device);
+        // Start controller polling
+        joycon.Start();
 
         // First of all, we need to set format of the input reports,
         // most of the time you will need to use InputReportMode.Full mode
@@ -106,42 +106,59 @@ internal class Program
         });
 
         (var cX, var cY) = (Console.CursorLeft, Console.CursorTop);
-        var i = 0;
-        while (true)
+
+        // Subscribe to the input reports
+        joycon.ReportReceived += (sender, input) =>
+        {
+            Console.SetCursorPosition(cX, cY);
+            // Check the type of the input report, most likely it will be InputWithImu
+            if (input is InputFullWithImu j)
+            {
+                // Some base data from the controller
+                Console.WriteLine($"LeftStick: ({j.LeftStick}), RightStick: ({j.RightStick}), Buttons: ({j.Buttons}), Battery: {j.Battery}, Charging: {j.Charging}          ");
+                // But we need calibrated data
+                StickPositionCalibrated leftStickCalibrated = j.LeftStick.GetCalibrated(calibration.LeftStickCalibration!, sticksParameters.LeftStickParameters.DeadZone);
+                StickPositionCalibrated rightStickCalibrated = j.RightStick.GetCalibrated(calibration.RightStickCalibration!, sticksParameters.RightStickParameters.DeadZone);
+                Console.WriteLine($"Calibrated LeftStick: (({leftStickCalibrated}), RightStick: ({rightStickCalibrated}))          ");
+                // And accelerometer and gyroscope data
+                ImuFrameCalibrated calibratedImu = j.Imu.Frames[0].GetCalibrated(calibration.ImuCalibration!);
+                Console.WriteLine($"Calibrated IMU: ({calibratedImu})          ");
+            }
+            else
+            {
+                Console.WriteLine($"Invalid input report type: {input.GetType()}");
+            }
+            return Task.CompletedTask;
+        };
+
+        // Error handling
+        joycon.StoppedOnError += new JoyCon.StoppedOnErrorHandler((_, ex) =>
+        {
+            Console.WriteLine();
+            Console.WriteLine($"Critical error: {ex.Message}");
+            Console.WriteLine("Controller polling stopped.");
+            Environment.Exit(1);
+            return Task.CompletedTask;
+        });
+
+        // Periodically send rumble command to the controller
+        var rumbleTimer = new Timer(async _ =>
         {
             try
             {
-                Console.SetCursorPosition(cX, cY);
-                // Read input report from the controller
-                IJoyConReport input = await joycon.ReadAsync();
-                // Check the type of the input report, most likely it will be InputWithImu
-                if (input is InputFullWithImu j)
-                {
-                    // Some base data from the controller
-                    Console.WriteLine($"LeftStick: ({j.LeftStick}), RightStick: ({j.RightStick}), Buttons: ({j.Buttons}), Battery: {j.Battery}, Charging: {j.Charging}          ");
-                    // But we need calibrated data
-                    StickPositionCalibrated leftStickCalibrated = j.LeftStick.GetCalibrated(calibration.LeftStickCalibration!, sticksParameters.LeftStickParameters.DeadZone);
-                    StickPositionCalibrated rightStickCalibrated = j.RightStick.GetCalibrated(calibration.RightStickCalibration!, sticksParameters.RightStickParameters.DeadZone);
-                    Console.WriteLine($"Calibrated LeftStick: (({leftStickCalibrated}), RightStick: ({rightStickCalibrated}))          ");
-                    // And accelerometer and gyroscope data
-                    ImuFrameCalibrated calibratedImu = j.Imu.Frames[0].GetCalibrated(calibration.ImuCalibration!);
-                    Console.WriteLine($"Calibrated IMU: ({calibratedImu})          ");
-                }
-                else
-                {
-                    Console.WriteLine($"Invalid input report type: {input.GetType()}");
-                }
-                if (i++ % 30 == 0)
-                {
-                    // Periodically send rumble command to the controller
-                    await joycon.WriteRumble(new RumbleSet(new RumbleData(40.9, 1), new RumbleData(65, 1)));
-                }
+                await joycon.WriteRumble(new RumbleSet(new RumbleData(40.9, 1), new RumbleData(65, 1)));
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error: {e.Message}");
-                await Task.Delay(1000);
+                Console.WriteLine($"Rumble error: {e.Message}");
             }
-        }
+        }, null, 0, 1000);
+
+        Console.ReadKey();
+        await rumbleTimer.DisposeAsync();
+        joycon.Stop();
+
+        Console.WriteLine();
+        Console.WriteLine("Stopped.");
     }
 }

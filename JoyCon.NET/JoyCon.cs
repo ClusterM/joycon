@@ -20,9 +20,8 @@ namespace wtf.cluster.JoyCon;
 /// </summary>
 public class JoyCon
 {
-    private const int maxAckWaitCommands = 16;
+    private TimeSpan commandAckTimeout = TimeSpan.FromSeconds(1);
 
-    private readonly SemaphoreSlim semaphore = new(1, 1);
     private byte packetNum = 0;
 
     /// <summary>
@@ -338,23 +337,104 @@ public class JoyCon
     }
 
     /// <summary>
-    /// Get the HID stream.
+    /// Event handler for report received.
     /// </summary>
-    public HidStream HidStream { get; }
+    /// <param name="source">The <see cref="JoyCon"/> instance.</param>
+    /// <param name="report">The report received as <see cref="IJoyConReport"/>.</param>
+    /// <returns>The task.</returns>
+    public delegate Task ReportReceivedHandler(JoyCon source, IJoyConReport report);
 
     /// <summary>
-    /// Create a new Joy-Con controller to control Joy-Con or Pro Controller.
+    /// Event handler for stopped on error.
     /// </summary>
-    /// <param name="hidStream">HID stream.</param>
-    public JoyCon(HidStream hidStream) => HidStream = hidStream;
+    /// <param name="source">The <see cref="JoyCon"/> instance.</param>
+    /// <param name="exception">The exception that caused the stop.</param>
+    /// <returns>The task.</returns>
+    public delegate Task StoppedOnErrorHandler(JoyCon source, Exception exception);
+
+    /// <summary>
+    /// Event raised when a report is received.
+    /// </summary>
+    public event ReportReceivedHandler ReportReceived = delegate { return Task.CompletedTask; };
+
+    /// <summary>
+    /// Event raised when controller polling is stopped because of an error.
+    /// </summary>
+    public event StoppedOnErrorHandler StoppedOnError = delegate { return Task.CompletedTask; };
+
+    private HidDevice hidDevice;
+    private HidStream? hidStream;
+    private CancellationTokenSource? cancellationTokenSource;
+
+    /// <summary>
+    /// Create a /new Joy-Con controller to control Joy-Con or Pro Controller.
+    /// </summary>
+    /// <param name="hidDevice">HID device which represents the controller.</param>
+    public JoyCon(HidDevice hidDevice) => this.hidDevice = hidDevice;
+
+    /// <summary>
+    /// Start controller polling.
+    /// </summary>
+    public void Start()
+    {
+        Stop();
+        hidStream = hidDevice.Open();
+        cancellationTokenSource = new CancellationTokenSource();
+        new Task(() => MainLoop(cancellationToken: cancellationTokenSource.Token)).Start();
+    }
+
+    /// <summary>
+    /// Stop controller polling.
+    /// </summary>
+    public void Stop()
+    {
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource = null;
+        hidStream?.Close();
+        hidStream = null;
+    }
+
+    private async void MainLoop(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                IJoyConReport report;
+                try
+                {
+                    report = await ReadAsyncNotThreadSafe(cancellationToken);
+                    await Task.WhenAll(ReportReceived.GetInvocationList()
+                        .OfType<ReportReceivedHandler>()
+                        .Select(h => h(this, report)));
+                }
+                catch (TimeoutException)
+                {
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    Stop();
+                    await Task.WhenAll(StoppedOnError.GetInvocationList()
+                        .OfType<StoppedOnErrorHandler>()
+                        .Select(h => h(this, ex)));
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // It's ok
+        }
+    }
 
     private async Task<IJoyConReport> ReadAsyncNotThreadSafe(CancellationToken cancellationToken = default)
     {
         var buf = new byte[512];
-        var len = await HidStream.ReadAsync(buf, 0, buf.Length);
+        var len = await hidStream!.ReadAsync(buf, 0, buf.Length, cancellationToken);
 
         return len == 0
-            ? throw new InvalidDataException("No data.")
+            ? throw new InvalidDataException("Empty report received.") // Can it happen?
             : (InputReportType)buf[0] switch
             {
                 InputReportType.Simple => FromBytes<InputSimple>(buf),
@@ -368,24 +448,6 @@ public class JoyCon
                 InputReportType.UnknownX35 => FromBytes<InputFullWithImu>(buf),
                 _ => throw new InvalidDataException($"Unknown report ID: 0x{buf[0]:X2}"),
             };
-    }
-
-    /// <summary>
-    /// Read a report from the controller.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The report.</returns>
-    public async Task<IJoyConReport> ReadAsync(CancellationToken cancellationToken = default)
-    {
-        await semaphore.WaitAsync(cancellationToken);
-        try
-        {
-            return await ReadAsyncNotThreadSafe(cancellationToken);
-        }
-        finally
-        {
-            _ = semaphore.Release();
-        }
     }
 
     /// <summary>
@@ -413,7 +475,20 @@ public class JoyCon
     /// <returns>The subcommand reply as <see cref="SubCmdReply"/> object or null if noWaitAck is true.</returns>
     public async Task<SubCmdReply?> WriteSubcommandAsync(byte outputReportID, RumbleSet? rumble, Subcommand subcommandID, byte[]? subcommandData = null, bool noWaitAck = false, CancellationToken cancellationToken = default)
     {
-        await semaphore.WaitAsync(cancellationToken);
+        if (hidStream == null)
+            throw new InvalidOperationException("Not started");
+
+        using var semaphore = new SemaphoreSlim(0, 1);
+        SubCmdReply? reply = null;
+        var recvHandler = new ReportReceivedHandler((source, report) =>
+        {
+            if (report is InputFullWithSubCmdReply i && i.SubcommandReply.SubcommandID == subcommandID)
+            {
+                reply = i.SubcommandReply;
+                semaphore.Release();
+            }
+            return Task.CompletedTask;
+        });
         try
         {
             var buf = new byte[0x40];
@@ -421,38 +496,42 @@ public class JoyCon
             buf[1] = (byte)(packetNum++ & 0x0F);
             var rumbleRaw = rumble != null ? rumble.ToBytes() : new RumbleSet().ToBytes();
             Array.Copy(rumbleRaw, 0, buf, 2, rumbleRaw.Length);
-            ;
             buf[10] = (byte)subcommandID;
+
             if (subcommandData != null && subcommandData.Length > 0)
             {
                 Array.Copy(subcommandData, 0, buf, 11, subcommandData.Length);
             }
             try
             {
-                await HidStream.WriteAsync(buf, 0, buf.Length, cancellationToken);
+                if (!noWaitAck)
+                {
+                    ReportReceived += recvHandler;
+                }
+                await hidStream.WriteAsync(buf, 0, buf.Length, cancellationToken);
             }
             catch (IOException e) when (e.InnerException is System.ComponentModel.Win32Exception win32Exception && win32Exception.NativeErrorCode == 87)
             {
                 // It's ok
             }
-            var waitCount = 0;
-            while (!noWaitAck)
+
+            if (noWaitAck)
             {
-                IJoyConReport input = await ReadAsyncNotThreadSafe(cancellationToken);
-                if (input is InputFullWithSubCmdReply i && i.SubcommandReply.SubcommandID == subcommandID)
-                {
-                    return i.SubcommandReply;
-                }
-                if (waitCount++ > maxAckWaitCommands)
-                {
-                    throw new TimeoutException($"Subcommand acknowledgement for command {(Subcommand)subcommandID} not received.");
-                }
+                return null;
             }
-            return null;
+
+            var timeoutTask = Task.Delay(commandAckTimeout);
+            var waitTask = semaphore.WaitAsync();
+            var r = await Task.WhenAny(waitTask, timeoutTask);
+            if (r == timeoutTask)
+                throw new TimeoutException($"Subcommand acknowledgement for command {subcommandID} not received.");
+
+            return reply;
         }
         finally
         {
-            semaphore.Release();
+            if (ReportReceived.GetInvocationList().Contains(recvHandler))
+                ReportReceived -= recvHandler;
         }
     }
 
@@ -947,5 +1026,5 @@ public class JoyCon
             }).ToArray();
 
     /// <inheritdoc/>
-    public override string ToString() => $"Joy-Con {HidStream.Device}";
+    public override string ToString() => $"Joy-Con {hidDevice}";
 }
