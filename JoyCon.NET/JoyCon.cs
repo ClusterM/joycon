@@ -18,7 +18,7 @@ namespace wtf.cluster.JoyCon;
 /// <summary>
 /// Joy-Con controller to control Joy-Con or Pro Controller.
 /// </summary>
-public class JoyCon
+public class JoyCon : IDisposable
 {
     private readonly TimeSpan commandAckTimeout = TimeSpan.FromSeconds(1);
 
@@ -848,14 +848,14 @@ public class JoyCon
     }
 
     /// <summary>
-    /// Erase the SPI flash sector. This will erase 4KB of data. (WARNING! This will erase all 4KB of data in the sector!)
+    /// Erase the SPI flash sector. WARNING! This will erase data in the whole 4KB sector!
     /// </summary>
     /// <param name="address">Address of the sector.</param>
     /// <param name="noWaitAck">True to not wait for acknowledgement.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The task.</returns>
     /// <exception cref="InvalidOperationException">Thrown when acknowledgement is failed or SPI flash is write-protected.</exception>
-    public async Task SpiFlashSectorEraseAsync(int address, bool noWaitAck = false, CancellationToken cancellationToken = default)
+    public async Task EraseSpiFlashSectorAsync(int address, bool noWaitAck = false, CancellationToken cancellationToken = default)
     {
         SubCmdReply? reply = await WriteSubcommandAsync(null, Subcommand.SpiFlashSectorErase, BitConverter.GetBytes(address), noWaitAck, cancellationToken: cancellationToken);
         if (reply != null && !reply.Acknowledged)
@@ -1024,4 +1024,16 @@ public class JoyCon
 
     /// <inheritdoc/>
     public override string ToString() => $"Joy-Con {hidDevice}";
+
+    private bool disposed = false;
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (disposed)
+        {
+            throw new ObjectDisposedException(nameof(JoyCon));
+        }
+        Stop();
+        disposed = true;
+    }
 }
