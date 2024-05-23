@@ -1,4 +1,5 @@
 ﻿using HidSharp;
+using System.Runtime.InteropServices;
 using System.Text;
 using wtf.cluster.JoyCon;
 using wtf.cluster.JoyCon.Calibration;
@@ -9,17 +10,55 @@ using wtf.cluster.JoyCon.Rumble;
 
 Console.OutputEncoding = Encoding.UTF8;
 
-// Get a list of all HID devices using the HidSharp library
+HidDevice? device = null;
+// Get a list of all HID devices
 DeviceList list = DeviceList.Local;
-// Get all devices developed by Nintendo
-var nintendos = list.GetHidDevices(0x057e);
-// Get the first Nintendo controller
-HidDevice? device = nintendos.FirstOrDefault();
+if (OperatingSystem.IsWindows())
+{
+    // Get all devices developed by Nintendo by vendor ID
+    var nintendos = list.GetHidDevices(0x057e);
+    // Get the first Nintendo controller
+    device = nintendos.FirstOrDefault();
+    // It works fine for Windows, but...
+}
+else
+{
+    // Linux has more complicated HID device management, we can't get device's vendor ID,
+    // so let's filter devices by their report descriptor
+    // It should work in Windows too, so it's more multiplatform solution
+    var hidDevices = list.GetHidDevices();
+    foreach (var d in hidDevices)
+    {
+        var rd = d.GetReportDescriptor();
+        if (rd != null)
+        {
+            if (
+                (rd.OutputReports.Count() == 4)
+                && (rd.OutputReports.Where(r => r.ReportID == 0x01).Count() == 1)
+                && (rd.OutputReports.Where(r => r.ReportID == 0x10).Count() == 1)
+                && (rd.OutputReports.Where(r => r.ReportID == 0x11).Count() == 1)
+                && (rd.OutputReports.Where(r => r.ReportID == 0x12).Count() == 1)
+                && (rd.InputReports.Count() == 6)
+                && (rd.InputReports.Where(r => r.ReportID == 0x21).Count() == 1)
+                && (rd.InputReports.Where(r => r.ReportID == 0x30).Count() == 1)
+                && (rd.InputReports.Where(r => r.ReportID == 0x31).Count() == 1)
+                && (rd.InputReports.Where(r => r.ReportID == 0x32).Count() == 1)
+                && (rd.InputReports.Where(r => r.ReportID == 0x33).Count() == 1)
+                && (rd.InputReports.Where(r => r.ReportID == 0x3F).Count() == 1)
+            )
+            {
+                device = d;
+                break;
+            }
+        }
+    }
+}
 if (device == null)
 {
     Console.WriteLine("No controller. Please connect Joy-Con or Pro controller via Bluetooth.");
     return;
 }
+
 // Create a new JoyCon instance based on the HID device
 var joycon = new JoyCon(device);
 // Start controller polling
